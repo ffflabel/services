@@ -1,0 +1,27 @@
+{
+    "name": "ffflabel/services",
+    "version": "0.0.1",
+    "description": "Services that used in development by White label company",
+    "keywords": [
+        "ffflabel",
+        "php",
+        "api"
+    ],
+    "homepage": "https://ffflabel.com/",
+    "authors": [
+        {
+            "name": "Timon"
+        }
+    ],
+    "require": {
+        "php": ">=7.0"
+    },
+    "require-dev": {
+
+    },
+    "autoload": {
+        "psr-4": {
+            "FFFlabel\\Services\\" : ""
+        }
+    }
+}
