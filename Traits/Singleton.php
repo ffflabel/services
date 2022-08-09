@@ -1,9 +1,9 @@
 <?php
 
-namespace DompakDelivery\Service;
+namespace FFFlabel\Services\Traits;
 
 
-trait SingletonTrait {
+trait Singleton {
 
 	/**
 	 * @var static singleton instance
@@ -15,7 +15,7 @@ trait SingletonTrait {
 	 *
 	 * @return static
 	 */
-	public static function getInstance()
+	public static function instance()
 	{
 		return static::$instance ?? (static::$instance = static::initInstance());
 	}
@@ -40,27 +40,20 @@ trait SingletonTrait {
 		static::$instance = null;
 	}
 
-	/**
-	 * Disabled by access level
-	 */
-	private function __construct()
-	{
-	}
 
 	/**
 	 * Disabled by access level
 	 */
 	private function __clone()
 	{
+		throw new \InvalidArgumentException( 'Clone instances of this class is forbidden.' );
 	}
 
 	/**
 	 * Prevent unserializing.
 	 */
 	final public function __wakeup() {
-		wc_doing_it_wrong( __FUNCTION__, __( 'Unserializing instances of this class is forbidden.', 'woocommerce' ), '4.6' );
-		die();
+		throw new \InvalidArgumentException( 'Unserializing instances of this class is forbidden.' );
 	}
-
 
 }
