@@ -1,6 +1,6 @@
 <?php
 
-namespace FFFlabel\Service;
+namespace FFFlabel\Services;
 
 
 use FFFlabel\Services\Traits\Singleton;
@@ -22,32 +22,39 @@ class Gutenberg {
 	private function __construct()
     {
 
-		$this->blocks_paths = apply_filters('fff/gutenberg/blocks_path', get_template_directory() . '/template-parts/blocks/');
+	    $this->blocks_paths = apply_filters('fff/gutenberg/locate/blocks_paths', [
+		    'child'  => get_stylesheet_directory() . Gutenberg::BLOCKS_DIR_NAME,
+		    'parent' => get_template_directory() . Gutenberg::BLOCKS_DIR_NAME
+	    ]);
 
-		if (file_exists($this->blocks_paths)) {
+	    $paths = [];
+	    foreach ($this->blocks_paths as $block_path) {
+		    if (file_exists($block_path)) {
+			    $paths +=  scandir($block_path);
+		    }
+	    }
 
-			$theme_blocks = apply_filters(
-                    'fff/gutenberg/blocks',
-                    array_diff(
-                            scandir($this->blocks_paths),
-                            apply_filters('fff/gutenberg/blocks_path/excluding_folders', ['.', '..', '.DS_Store'])
-                    )
-            );
+	    $theme_blocks = apply_filters(
+		    'fff/gutenberg/blocks',
+		    array_diff(
+			    $paths,
+			    apply_filters('fff/gutenberg/blocks_path/excluding_folders', ['.', '..', '.DS_Store'])
+		    )
+	    );
 
-            foreach ($theme_blocks as $theme_block) {
-                $this->initBlock($theme_block);
-            }
-        }
+	    if (!empty($theme_blocks)) {
+		    foreach ($theme_blocks as $theme_block) {
+			    $this->initBlock($theme_block);
+		    }
+	    }
 
-		add_filter('acf/settings/load_json', [$this, 'blocksLoadFromJson']);
+	    add_filter('acf/settings/load_json', [$this, 'blocksLoadFromJson']);
 
-		add_action('acf/init', [$this, 'registerBlocksAction']);
+	    add_action('acf/init', [$this, 'registerBlocksAction']);
 	}
 
     private function initBlock($theme_block): void
     {
-	    $plugin_blocks_path = $this->blocks_paths . $theme_block;
-
 	    $init_path = Gutenberg::locateFile($theme_block . '/init.php');
 	    $index_path = Gutenberg::locateFile($theme_block . '/index.php');
 
@@ -67,7 +74,6 @@ class Gutenberg {
 		    }
 
 		    $default_options = [
-			    'path' => $plugin_blocks_path,
 			    'name' => $theme_block,
 			    'mode' => 'preview',
 			    'keywords' => [$theme_block],
@@ -139,8 +145,11 @@ class Gutenberg {
     {
         if (!empty($this->_blocks)) {
 	        foreach ($this->_blocks as $block) {
-		        if (!empty($block['path'])) {
-			        $paths[] = $block['path'] . '/acf-json';
+                foreach ($this->blocks_paths as $path) {
+                    $folder = $path . $block['name'] . DIRECTORY_SEPARATOR . 'acf-json';
+	                if (file_exists($folder)) {
+		                $paths[] = $folder;
+	                }
                 }
 	        }
         }
