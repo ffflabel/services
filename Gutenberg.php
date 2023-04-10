@@ -190,7 +190,7 @@ class Gutenberg {
 
         foreach ($template_paths as $path) {
             if (file_exists($path . $file_name)) {
-	            $url_dir = str_replace(str_replace(DIRECTORY_SEPARATOR, '/', ABSPATH), home_url('/'), str_replace(DIRECTORY_SEPARATOR,'/', $path));
+	            $url_dir = str_replace(str_replace(DIRECTORY_SEPARATOR, '/', WP_CONTENT_DIR), WP_CONTENT_URL, str_replace(DIRECTORY_SEPARATOR,'/', $path));
 	            return $return_url ? $url_dir . $file_name : $path . $file_name;
             }
         }
