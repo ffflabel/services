@@ -7,6 +7,7 @@ class Settings {
     protected $optionKey;
 
     protected $isACF;
+    protected $need_stored;
 
     protected $settings = [
         'default' => [],
@@ -20,11 +21,13 @@ class Settings {
      * @param $optionKey             string
      * @param $defaultSettings       array
      * @param $use_acf               bool
+     * @param $without_stored        bool
      */
-    public function __construct($option_key, $default_settings, bool $use_acf = false)
+    public function __construct($option_key, $default_settings, bool $use_acf = false, bool $without_stored = false)
     {
         $this->optionKey = $option_key;
 		$this->isACF = $use_acf && class_exists('ACF');
+		$this->need_stored = !$without_stored;
 
         $this->settings['default'] = $default_settings;
 
@@ -93,16 +96,18 @@ class Settings {
 	 */
     protected function storeSettings()
     {
+	    if ($this->need_stored) {
 
-	    if ($this->isACF) {
-			foreach ($this->settings['stored'] as $key => $value) {
-				update_field($key, $value, $this->optionKey);
-			}
-	    } else {
-		    update_option($this->optionKey, maybe_serialize($this->settings['stored']));
+		    if ($this->isACF) {
+			    foreach ($this->settings['stored'] as $key => $value) {
+				    update_field($key, $value, $this->optionKey);
+			    }
+		    } else {
+			    update_option($this->optionKey, maybe_serialize($this->settings['stored']));
+		    }
 	    }
 
-        $this->settings['final'] = apply_filters('fff/settings/finalize/' . $this->optionKey, $this->settings['stored']);
+	    $this->settings['final'] = apply_filters('fff/settings/finalize/' . $this->optionKey, $this->settings['stored']);
     }
 
 	/**
@@ -111,6 +116,10 @@ class Settings {
 	protected function getStoreSettings()
 	{
 		$settings = [];
+
+		if (!$this->need_stored) {
+			return $settings;
+		}
 
 		if ($this->isACF) {
 			$option_page = acf_get_options_page($this->optionKey);
