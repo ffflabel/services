@@ -178,7 +178,7 @@ class Gutenberg {
     public static function locateFile($file_name, $template_paths = [], $return_url=false)
     {
         if (empty($file_name)) {
-            return '';
+            return apply_filters('fff/gutenberg/locateFile', '', $file_name, $template_paths, $return_url) ;
         }
 
         if (empty($template_paths)) {
@@ -191,11 +191,11 @@ class Gutenberg {
         foreach ($template_paths as $path) {
             if (file_exists($path . $file_name)) {
 	            $url_dir = str_replace(str_replace(DIRECTORY_SEPARATOR, '/', WP_CONTENT_DIR), WP_CONTENT_URL, str_replace(DIRECTORY_SEPARATOR,'/', $path));
-	            return $return_url ? $url_dir . $file_name : $path . $file_name;
+	            return apply_filters('fff/gutenberg/locateFile', $return_url ? $url_dir . $file_name : $path . $file_name, $file_name, $template_paths, $return_url) ;
             }
         }
 
-        return '';
+	    return apply_filters('fff/gutenberg/locateFile', '', $file_name, $template_paths, $return_url);
     }
 
 }

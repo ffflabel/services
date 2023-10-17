@@ -10,8 +10,8 @@ class PostTypeRepository
 
     public function __construct()
     {
-	    if ( ! isset( $this->machineName ) ) {
-		    throw new \InvalidArgumentException( get_class( $this ) . ' must have a $machinename' );
+	    if (! isset( $this->machineName )) {
+		    throw new \InvalidArgumentException(get_class( $this ) . ' must have a $machinename' );
 	    }
     }
 
