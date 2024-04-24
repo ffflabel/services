@@ -17,7 +17,7 @@ abstract class StorageAbstract {
         $this->store();
     }
 
-    public function get($key)
+    public function get($key, $default = null)
     {
         $this->load();
 
@@ -25,7 +25,7 @@ abstract class StorageAbstract {
             return $this->data[$key];
         }
 
-        return null;
+        return $default;
     }
 
     public function delete($key)

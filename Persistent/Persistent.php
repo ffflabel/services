@@ -17,7 +17,6 @@ class Persistent {
 
 	private function __construct()
 	{
-
         add_action('init', [$this, 'init'], 0);
 
         add_action('fff_before_wp_login', function () {
@@ -43,13 +42,13 @@ class Persistent {
         }
     }
 
-    public static function get($key)
+    public static function get($key, $default = false)
     {
         if (self::$instance->storage) {
             return self::$instance->storage->get($key);
         }
 
-        return false;
+        return $default;
     }
 
     public static function delete($key)

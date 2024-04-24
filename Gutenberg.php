@@ -15,12 +15,26 @@ class Gutenberg {
 
     private $blocks_paths = '';
 
-	public static function init() {
-		return self::instance();
+	private $_media = [
+		'sm' => 500,
+		'mds' => 720,
+		'md' => 1020,
+		'lgs' => 1200,
+		'lg' => 1400,
+		'lgl' => 1650,
+	];
+
+    private $_version = '0.0.1';
+
+	public static function init($version = '0.0.1') {
+		return self::instance()->setVersion($version);
 	}
+
 
 	private function __construct()
     {
+
+        $this->_media = apply_filters('fff/gutenberg/media_sizes', $this->_media);
 
 	    $this->blocks_paths = apply_filters('fff/gutenberg/locate/blocks_paths', [
 		    'child'  => get_stylesheet_directory() . Gutenberg::BLOCKS_DIR_NAME,
@@ -53,6 +67,12 @@ class Gutenberg {
 	    add_action('acf/init', [$this, 'registerBlocksAction']);
 	}
 
+    public function setVersion($version)
+    {
+        $this->_version = $version;
+        return $this;
+    }
+
     private function initBlock($theme_block): void
     {
 	    $init_path = Gutenberg::locateFile($theme_block . '/init.php');
@@ -83,11 +103,7 @@ class Gutenberg {
 					    'full', 'center'
 				    ]
 			    ],
-			    'enqueue_style' => Gutenberg::locateFile($theme_block . '/style.css', [], true) ,
-			    'enqueue_script' => Gutenberg::locateFile($theme_block . '/script.js', [], true),
-			    'enqueue_assets' => function() use ($theme_block) {
-				    do_action('fff/gutenberg/block/enqueue_assets', $theme_block);
-			    }
+			    'enqueue_style' => Gutenberg::locateFile($theme_block . '/style.css', [], true),
 		    ];
 
 		    if (!empty($index_path)) {
@@ -97,6 +113,11 @@ class Gutenberg {
 		    }
 
 		    $block_options = apply_filters('fff/gutenberg/block_options', array_merge($default_options, $opt), $theme_block);
+
+		    $block_options['enqueue_assets'] = function() use ($block_options) {
+                $this->enqueueBlockAssets($block_options);
+            };
+
 		    $this->addBlock($block_options);
 	    }
     }
@@ -104,6 +125,71 @@ class Gutenberg {
 	public function addBlock($model)
 	{
 		$this->_blocks[$this->clearBlockName($model['name'])] = $model;
+	}
+
+	public function enqueueBlockAssets($model) : void
+	{
+		$css_deps = [];
+		$js_deps = [];
+
+		if (!empty($model['require_assets']['css'])) {
+			foreach ($model['require_assets']['css'] as $name) {
+				foreach ($this->_media as $media_name => $size) {
+
+					if (Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css')) {
+						if (!isset($css_deps[$media_name])) $css_deps[$media_name] = [];
+                        $css_dep = 'sa_css_' . $name . '_' . $media_name;
+						$css_deps[$media_name][] = $css_dep;
+						wp_register_style(
+							$css_dep,
+							Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css', [], true),
+							[],
+							$this->_version,
+							$size?'(min-width:'.$size.'px)':'all'
+						);
+					}
+				}
+			}
+		}
+
+		foreach ($this->_media as $media_name => $size) {
+			if (Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css')) {
+				wp_enqueue_style(
+					$model['name'] . '_style_' . $media_name,
+					Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css', [], true),
+					$css_deps[$media_name],
+					$this->_version,
+					$size?'(min-width:'.$size.'px)':'all'
+				);
+			}
+		}
+
+		if (!empty($model['require_assets']['js'])) {
+			foreach ($model['require_assets']['js'] as $name) {
+				if (Gutenberg::locateFile('shared_assets/js/' . $name . '.js')) {
+					$js_deps[] = 'sa_js_' . $name;
+					wp_register_script(
+						'sa_js_' . $name,
+						Gutenberg::locateFile('shared_assets/js/' . $name . '.js', [], true),
+						[],
+						$this->_version,
+						true
+					);
+				}
+			}
+		}
+
+		if (Gutenberg::locateFile($model['name'] . '/script.js')) {
+			wp_enqueue_script(
+				$model['name'] . '_script',
+				Gutenberg::locateFile($model['name'] . '/script.js', [], true),
+				$js_deps,
+				$this->_version,
+				true
+			);
+		}
+
+		do_action('fff/gutenberg/block/enqueue_assets', $model['name'], $model);
 	}
 
 	public function renderEmptyBlockWithError($block, $content = '', $is_preview = false, $post_id = 0)
