@@ -137,9 +137,8 @@ class Gutenberg {
 				foreach ($this->_media as $media_name => $size) {
 
 					if (Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css')) {
-						if (!isset($css_deps[$media_name])) $css_deps[$media_name] = [];
                         $css_dep = 'sa_css_' . $name . '_' . $media_name;
-						$css_deps[$media_name][] = $css_dep;
+						$css_deps[] = $css_dep;
 						wp_register_style(
 							$css_dep,
 							Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css', [], true),
@@ -157,7 +156,7 @@ class Gutenberg {
 				wp_enqueue_style(
 					$model['name'] . '_style_' . $media_name,
 					Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css', [], true),
-					$css_deps[$media_name],
+					$css_deps,
 					$this->_version,
 					$size?'(min-width:'.$size.'px)':'all'
 				);
