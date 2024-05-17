@@ -31,7 +31,7 @@ class DateHelpers {
 		$default_settings = [
 			'w' => 7*24*60*60, // week (7d*24h*60m*60s)
 			'd' => 24*60*60, // day (24h*60m*60s)
-			'h' => 60*60, // hour (24h*60m*60s)
+			'h' => 60*60, // hour (60m*60s)
 			'm' => 60, // minute (60s)
 			's' => 1, // second
 		];
