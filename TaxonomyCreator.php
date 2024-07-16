@@ -36,8 +36,8 @@ class TaxonomyCreator
 
 			self::$labels[$machineName] = [
 				'name'                       => $pluralName,
+				'menu_name'                  => $pluralName,
 				'singular_name'              => $singularName,
-				'menu_name'                  => $singularName,
 				'all_items'                  => _x('All Items', $context),
 				'parent_item'                => _x('Parent Item', $context),
 				'parent_item_colon'          => _x('Parent Item:', $context),
