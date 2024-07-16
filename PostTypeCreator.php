@@ -27,8 +27,8 @@ class PostTypeCreator {
 
 		self::$labels[ $machineName ] = [
 			'name'                  => $pluralName,
+			'menu_name'             => $pluralName,
 			'singular_name'         => $singularName,
-			'menu_name'             => $singularName,
 			'name_admin_bar'        => $singularName,
 			'archives'              => sprintf(_x('%s Archives', $context), $singularName),
 			'parent_item_colon'     => sprintf(_x('Parent %s:', $context), $singularName),
