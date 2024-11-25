@@ -62,11 +62,10 @@ class Session extends StorageAbstract {
             if (isset($_COOKIE[$this->sessionName])) {
                 $this->sessionId = 'fff_persistent_' . md5(SECURE_AUTH_KEY . $_COOKIE[$this->sessionName]);
             } elseif ($createSession) {
-                $unique = uniqid('fff', true);
 
-                $this->setCookie($unique, apply_filters('fff_session_cookie_expiration', 0), apply_filters('fff_session_use_secure_cookie', false));
+                $this->setCookie($this->sessionName, apply_filters('fff_session_cookie_expiration', 0), apply_filters('fff_session_use_secure_cookie', false));
 
-                $this->sessionId = 'fff_persistent_' . md5(SECURE_AUTH_KEY . $unique);
+                $this->sessionId = 'fff_persistent_' . md5(SECURE_AUTH_KEY . $this->sessionName);
 
                 $isLoaded = true;
             }

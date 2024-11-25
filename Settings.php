@@ -45,7 +45,7 @@ class Settings {
         return $this->settings[$storage][$key];
     }
 
-    public function set($key, $value)
+    public function set($key, $value): void
     {
         $this->settings['stored'][$key] = $value;
         $this->storeSettings();
@@ -61,7 +61,7 @@ class Settings {
      *
      * @return bool
      */
-    public function update($posted_data)
+    public function update($posted_data): bool
     {
         if (is_array($posted_data)) {
 
@@ -94,7 +94,7 @@ class Settings {
 	/**
 	 * @return void
 	 */
-    protected function storeSettings()
+    protected function storeSettings(): void
     {
 	    if ($this->need_stored) {
 
@@ -113,7 +113,7 @@ class Settings {
 	/**
 	 * @return array
 	 */
-	protected function getStoreSettings()
+	protected function getStoreSettings(): array
 	{
 		$settings = [];
 
