@@ -80,7 +80,7 @@ class RestRoute {
 	 */
 	public static function addToInit(): void
 	{
-		add_action('rest_api_init', [self::class, 'registerRoutes']);
+		add_action('rest_api_init', [self::class, 'register']);
 	}
 
 }
