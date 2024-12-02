@@ -198,7 +198,7 @@ class PostType {
 		}
 
 		if (!empty($this->{$taxonomy_field})) {
-			$_ids = array_keys($this->{$taxonomy_field});
+			$_ids = array_map('intval', array_keys($this->{$taxonomy_field})) ;
 			wp_set_post_terms($this->id,$_ids,$taxonomy_name, false);
 		}
 
