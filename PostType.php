@@ -170,7 +170,7 @@ class PostType {
 			return $this->{$method}();
 		}
 
-		if (!property_exists($this,$taxonomy_field) || !in_array($taxonomy_name, $this->getTaxonomies())) {
+		if (!property_exists($this,$taxonomy_field) || !array_key_exists($taxonomy_name, $this->getTaxonomies())) {
 			return $this;
 		}
 
@@ -193,13 +193,13 @@ class PostType {
 			return $this->{$method}();
 		}
 
-		if (!property_exists($this,$taxonomy_field) || !in_array($taxonomy_name, $this->getTaxonomies())) {
+		if (!property_exists($this,$taxonomy_field) || !array_key_exists($taxonomy_name, $this->getTaxonomies())) {
 			return $this;
 		}
 
 		if (!empty($this->{$taxonomy_field})) {
 			$_ids = array_map('intval', array_keys($this->{$taxonomy_field})) ;
-			wp_set_post_terms($this->id,$_ids,$taxonomy_name, false);
+			wp_set_post_terms($this->id, $_ids, $taxonomy_name, false);
 		}
 
 		return $this;
