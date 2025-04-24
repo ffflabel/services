@@ -225,3 +225,4 @@ class PostRepository
 		return $args;
 	}
 }
+
