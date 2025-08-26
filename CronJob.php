@@ -32,6 +32,10 @@ class CronJob {
 			wp_schedule_event( strtotime(date('Y-m-d H:00:00')), 'hourly', 'hourlyEvent' );
 		}
 
+		if( !wp_next_scheduled( 'everyFifteenMinutesEvent' ) ) {
+			wp_schedule_event( strtotime(date('Y-m-d H:00:00')), 'everyFifteenMinutes', 'everyFifteenMinutesEvent' );
+		}
+
 	}
 
 
@@ -47,6 +51,11 @@ class CronJob {
 			'display' => __( 'Once Daily', 'tracker' )
 		);
 
+		$schedules['everyFifteenMinutes'] = array(
+			'interval' => 15 * 60, // 900 seconds - 15 minutes
+			'display' => __( 'Every 15 minutes', 'tracker' )
+		);
+
 		return $schedules;
 	}
 
@@ -55,7 +64,7 @@ class CronJob {
 	}
 
 	public static function addJob($period='hourly', $callback, $priority=10) {
-		if (empty($period) || !in_array($period, array('hourly','daily'))) return false;
+		if (empty($period) || !in_array($period, array('hourly','daily', 'everyFifteenMinutes'))) return false;
 		if (!is_callable($callback)) return false;
 
 		add_action( $period . 'Event', $callback, $priority );
