@@ -3,7 +3,6 @@
 namespace FFFlabel\Services;
 
 class Settings {
-
     protected $optionKey;
 
     protected $isACF;
