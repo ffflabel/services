@@ -24,7 +24,7 @@ class Gutenberg {
 		'lgl' => 1650,
 	];
 
-    private $_version = '0.0.1';
+    private $_version = '1.0.1';
 
 	public static function init($version = '0.0.1') {
 		return self::instance()->setVersion($version);
@@ -64,6 +64,11 @@ class Gutenberg {
 
 	    add_filter('acf/settings/load_json', [$this, 'blocksLoadFromJson']);
 
+	    // Load each block's styles on render (front end) / into the editor iframe,
+	    // which is what `wp_enqueue_block_style()` needs to keep the loading
+	    // conditional instead of enqueuing every block's CSS on every page.
+	    add_filter('should_load_separate_core_block_assets', '__return_true');
+
 	    add_action('acf/init', [$this, 'registerBlocksAction']);
 	}
 
@@ -95,6 +100,12 @@ class Gutenberg {
 
 		    $default_options = [
 			    'name' => $theme_block,
+			    // ACF block v3 → ACF's iframe-compatible edit UI, and ACF derives the
+			    // WordPress block `api_version` (3 on WP 6.3+) from this. Setting the
+			    // WP `api_version` directly instead leaves ACF's edit form on its
+			    // legacy (v1) path, which cannot render inside the v3 editor iframe —
+			    // so the block's edit mode toggle stops working.
+			    'acf_block_version' => 3,
 			    'mode' => 'preview',
 			    'keywords' => [$theme_block],
 			    'align' => 'full',
@@ -103,7 +114,12 @@ class Gutenberg {
 					    'full', 'center'
 				    ]
 			    ],
-			    'enqueue_style' => Gutenberg::locateFile($theme_block . '/style.css', [], true),
+			    // NB: no `enqueue_style` here — ACF enqueues that option on
+			    // `enqueue_block_editor_assets`, which never reaches the block-API-v3
+			    // canvas iframe. All of a block's CSS (base + per-breakpoint + shared)
+			    // is routed through {@see self::registerBlockStyles()} via
+			    // wp_enqueue_block_style(), which loads into the iframe and, on the
+			    // front end, on demand when the block renders.
 		    ];
 
 		    if (!empty($index_path)) {
@@ -127,41 +143,17 @@ class Gutenberg {
 		$this->_blocks[$this->clearBlockName($model['name'])] = $model;
 	}
 
+	/**
+	 * Enqueues a block's scripts (shared JS deps + its own script.js).
+	 *
+	 * Block styles are handled separately by {@see self::registerBlockStyles()} via
+	 * `wp_enqueue_block_style()` — the block API v3 editor renders in an iframe, and
+	 * styles added with a plain `wp_enqueue_style()` from a block render land in the
+	 * wrong document ("… was added to the iframe incorrectly").
+	 */
 	public function enqueueBlockAssets($model) : void
 	{
-		$css_deps = [];
 		$js_deps = [];
-
-		if (!empty($model['require_assets']['css'])) {
-			foreach ($model['require_assets']['css'] as $name) {
-				foreach ($this->_media as $media_name => $size) {
-
-					if (Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css')) {
-                        $css_dep = 'sa_css_' . $name . '_' . $media_name;
-						$css_deps[] = $css_dep;
-						wp_register_style(
-							$css_dep,
-							Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css', [], true),
-							[],
-							$this->_version,
-							$size?'(min-width:'.$size.'px)':'all'
-						);
-					}
-				}
-			}
-		}
-
-		foreach ($this->_media as $media_name => $size) {
-			if (Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css')) {
-				wp_enqueue_style(
-					$model['name'] . '_style_' . $media_name,
-					Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css', [], true),
-					$css_deps,
-					$this->_version,
-					$size?'(min-width:'.$size.'px)':'all'
-				);
-			}
-		}
 
 		if (!empty($model['require_assets']['js'])) {
 			foreach ($model['require_assets']['js'] as $name) {
@@ -189,6 +181,80 @@ class Gutenberg {
 		}
 
 		do_action('fff/gutenberg/block/enqueue_assets', $model['name'], $model);
+	}
+
+	/**
+	 * Registers a block's stylesheets (its per-breakpoint `style_<media>.css` plus
+	 * any shared `require_assets['css']`) with `wp_enqueue_block_style()`.
+	 *
+	 * This is the block-API-v3-safe way to attach styles: WordPress loads them into
+	 * the editor iframe correctly and, on the front end (with
+	 * `should_load_separate_core_block_assets` enabled), only when the block is
+	 * actually rendered. Called once per block from {@see self::registerBlocksAction()}.
+	 *
+	 * Includes the block's base `style.css`: it is deliberately NOT registered via ACF's
+	 * `enqueue_style` option, because ACF enqueues that on `enqueue_block_editor_assets`,
+	 * which only reaches the outer editor document and never the v3 canvas iframe.
+	 */
+	public function registerBlockStyles($model): void
+	{
+		if (!function_exists('wp_enqueue_block_style')) {
+			return;
+		}
+
+		$block_name = (false !== strpos($model['name'], '/')) ? $model['name'] : 'acf/' . $model['name'];
+
+		// Shared CSS deps, also routed through wp_enqueue_block_style so they reach
+		// the iframe; used as dependencies of the block's own stylesheets.
+		$css_deps = [];
+		if (!empty($model['require_assets']['css'])) {
+			foreach ($model['require_assets']['css'] as $name) {
+				foreach ($this->_media as $media_name => $size) {
+					if (Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css')) {
+						$handle     = 'sa_css_' . $name . '_' . $media_name;
+						$css_deps[] = $handle;
+						wp_enqueue_block_style($block_name, [
+							'handle' => $handle,
+							'src'    => Gutenberg::locateFile('shared_assets/css/' . $name . '_' . $media_name . '.css', [], true),
+							'ver'    => $this->_version,
+							'media'  => $size ? '(min-width:' . $size . 'px)' : 'all',
+						]);
+					}
+				}
+			}
+		}
+
+		// Base stylesheet (`style.css`). Routed through wp_enqueue_block_style — NOT
+		// ACF's `enqueue_style` option — because ACF enqueues that option on
+		// `enqueue_block_editor_assets`, which only reaches the outer editor document,
+		// never the block-API-v3 canvas iframe. It carries the bulk of the block's
+		// styling, so the per-breakpoint files below depend on it to keep cascade order.
+		$base_handle = $model['name'] . '_style';
+		if (Gutenberg::locateFile($model['name'] . '/style.css')) {
+			wp_enqueue_block_style($block_name, [
+				'handle' => $base_handle,
+				'src'    => Gutenberg::locateFile($model['name'] . '/style.css', [], true),
+				'deps'   => $css_deps,
+				'ver'    => $this->_version,
+				'media'  => 'all',
+			]);
+		} else {
+			$base_handle = '';
+		}
+
+		$breakpoint_deps = $base_handle ? array_merge([$base_handle], $css_deps) : $css_deps;
+
+		foreach ($this->_media as $media_name => $size) {
+			if (Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css')) {
+				wp_enqueue_block_style($block_name, [
+					'handle' => $model['name'] . '_style_' . $media_name,
+					'src'    => Gutenberg::locateFile($model['name'] . '/style_' . $media_name . '.css', [], true),
+					'deps'   => $breakpoint_deps,
+					'ver'    => $this->_version,
+					'media'  => $size ? '(min-width:' . $size . 'px)' : 'all',
+				]);
+			}
+		}
 	}
 
 	public function renderEmptyBlockWithError($block, $content = '', $is_preview = false, $post_id = 0)
@@ -256,6 +322,7 @@ class Gutenberg {
 
 			foreach ($this->_blocks as $block_name => $block) {
 				acf_register_block_type($block);
+				$this->registerBlockStyles($block);
 			}
 		}
 	}
